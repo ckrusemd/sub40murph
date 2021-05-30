@@ -38,8 +38,35 @@ df =
 ```{r}
 
 df %>% 
+  dplyr::mutate(Time=gsub("\\..$","",Time)) %>% 
+  dplyr::mutate(Cumulative.Time=gsub("\\..$","",Cumulative.Time)) %>% 
+  dplyr::mutate(Time=paste0("0:",Time)) %>% 
+  dplyr::mutate(Cumulative.Time=paste0("0:",Cumulative.Time)) %>% 
+  dplyr::mutate(Time=hms(Time)) %>% 
+  dplyr::mutate(Cumulative.Time=hms(Cumulative.Time))
   DT::datatable(options = list(scrollX = TRUE))
 
 ```
 
+# Lap dictionary
+
+```{r}
+
+runs = rep("400m run",4)
+
+cindys = t(outer(paste0("Double-Cindy #",seq(1,10)),c(" - 10 Pull-Ups"," - 20 Push-ups"," - 30 Squats"), FUN = "paste0"))
+dim(cindys) <- NULL
+
+lap_dictionary = data.frame(Description = c(runs,cindys,runs)) %>% 
+  dplyr::mutate(Laps = paste0(seq(nrow(.))))
+
+```
+
+
+```{r}
+
+lap_dictionary %>% 
+  left_join(df)
+
+```
 
