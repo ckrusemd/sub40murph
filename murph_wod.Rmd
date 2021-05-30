@@ -1,0 +1,45 @@
+---
+title: "Sub-40 Murph Progression"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(pacman)
+pacman::p_load(dplyr,tidyr,lubridate,DT,data.table)
+```
+
+# Load CSV files
+
+
+```{r }
+
+csv_files = list.files(path = "data",full.names = T)
+```
+
+# Append Files
+
+```{r}
+
+df = 
+  rbindlist(lapply(csv_files,function(x) {
+  date = ymd(gsub("data/","",x))
+  read.csv(x) %>% 
+    as_tibble() %>% 
+    dplyr::mutate(date=date) %>% 
+    dplyr::relocate(date)
+}))
+
+```
+
+# Explore Datatable
+
+```{r}
+
+df %>% 
+  DT::datatable(options = list(scrollX = TRUE))
+
+```
+
+
