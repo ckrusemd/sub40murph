@@ -7,7 +7,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 
 library(pacman)
-pacman::p_load(dplyr,tidyr,lubridate,DT,data.table)
+pacman::p_load(dplyr,tidyr,lubridate,DT,data.table,ggplot2)
 ```
 
 # Load CSV files
@@ -27,24 +27,12 @@ df =
   date = ymd(gsub("data/","",x))
   read.csv(x) %>% 
     as_tibble() %>% 
-    dplyr::mutate(date=date) %>% 
+    dplyr::mutate(date=paste0(date)) %>% 
     dplyr::relocate(date)
-}))
-
-```
-
-# Explore Datatable
-
-```{r}
-
-df %>% 
+})) %>% 
   dplyr::mutate(Time=gsub("\\..$","",Time)) %>% 
   dplyr::mutate(Cumulative.Time=gsub("\\..$","",Cumulative.Time)) %>% 
-  dplyr::mutate(Time=paste0("0:",Time)) %>% 
-  dplyr::mutate(Cumulative.Time=paste0("0:",Cumulative.Time)) %>% 
-  dplyr::mutate(Time=hms(Time)) %>% 
-  dplyr::mutate(Cumulative.Time=hms(Cumulative.Time))
-  DT::datatable(options = list(scrollX = TRUE))
+  dplyr::mutate(Time=paste0("0:",Time))
 
 ```
 
@@ -52,21 +40,81 @@ df %>%
 
 ```{r}
 
+start = "Start"
+
 runs = rep("400m run",4)
 
 cindys = t(outer(paste0("Double-Cindy #",seq(1,10)),c(" - 10 Pull-Ups"," - 20 Push-ups"," - 30 Squats"), FUN = "paste0"))
 dim(cindys) <- NULL
 
-lap_dictionary = data.frame(Description = c(runs,cindys,runs)) %>% 
-  dplyr::mutate(Laps = paste0(seq(nrow(.))))
+exercise_types = c("Start",rep("Run",4),rep(c("Pull-Ups","Push-ups","Squats"),10),rep("Run",4))
+
+lap_dictionary = data.frame(Description = factor(c(start,runs,cindys,runs))) %>% 
+  dplyr::mutate(Laps = paste0(seq(nrow(.))-1)) %>% 
+  dplyr::mutate(Exercise=factor(exercise_types))
 
 ```
 
+# Explore Datatable
 
 ```{r}
 
-lap_dictionary %>% 
-  left_join(df)
+df.joined = lap_dictionary %>% 
+  left_join(df) %>% 
+  dplyr::mutate(date=ymd(ifelse(is.na(date),lead(date),date))) %>% 
+  dplyr::mutate(Laps=as.integer(Laps)) %>% 
+  dplyr::mutate(Time=ifelse(is.na(Time),"0:00.0",Time)) %>%  
+  dplyr::mutate(Time=hms(Time)) %>% 
+  dplyr::mutate(Cumulative.Time=ifelse(is.na(Cumulative.Time),"0:00.0",Cumulative.Time)) %>% 
+  dplyr::mutate(Cumulative.Time=lubridate::ymd_hms(paste0(Sys.Date()," 00:",Cumulative.Time))) %>% 
+  dplyr::mutate(Distance=ifelse(is.na(Distance),0,Distance)) %>% 
+  dplyr::mutate(Avg.Pace=ifelse(is.na(Avg.Pace),"0",Avg.Pace)) %>% 
+  dplyr::mutate(Avg.HR=ifelse(is.na(Avg.HR),NA,Avg.HR)) %>% 
+  dplyr::mutate(Max.HR=ifelse(is.na(Max.HR),NA,Max.HR)) %>% 
+  dplyr::mutate(Elev.Gain=ifelse(is.na(Elev.Gain),NA,Elev.Gain)) %>% 
+  dplyr::mutate(Elev.Loss=ifelse(is.na(Elev.Loss),NA,Elev.Loss)) %>% 
+  dplyr::mutate(Avg.Run.Cadence=ifelse(is.na(Avg.Run.Cadence),NA,Avg.Run.Cadence)) %>% 
+  dplyr::mutate(Avg.Stride.Length=ifelse(is.na(Avg.Stride.Length),0,Avg.Stride.Length)) %>% 
+  dplyr::mutate(Calories=ifelse(is.na(Calories),0,Calories)) %>% 
+  dplyr::mutate(Avg.Temperature=ifelse(is.na(Avg.Temperature),30,Avg.Temperature))
+
+df.joined %>% 
+  DT::datatable()
 
 ```
 
+
+# Visualizing one Murph
+
+```{r}
+
+df.joined %>% 
+  ggplot(.,aes(x=Cumulative.Time,y=Laps)) +
+  geom_line() +
+  geom_point(aes(color=Exercise,size=Max.HR)) +
+  scale_x_datetime(breaks = scales::breaks_width("2 min"),date_labels = "%Mm") +
+  theme_bw() + 
+  theme(axis.text.y = element_blank(),
+        legend.position = "bottom") +
+  labs(y=NULL,x=NULL,title="Murph")
+
+```
+
+# Benchmarking individual
+
+```{r}
+
+df.joined %>% 
+  group_by(date,Exercise) %>% 
+  dplyr::mutate(Rang=rank(Cumulative.Time)) %>% 
+  dplyr::mutate(Time=as.numeric(Time)) %>% 
+  filter(!Exercise=="Start") %>% 
+  ggplot(.,aes(x=Rang,y=Time)) +
+  geom_point() +
+  geom_line() +
+  facet_wrap(~Exercise,scales="free") +
+  theme_bw() + 
+  labs(y="seconds",x="Round",title="Murph") +
+  scale_x_continuous(breaks=seq(1,10))
+
+```
