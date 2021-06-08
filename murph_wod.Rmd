@@ -1,6 +1,10 @@
 ---
 title: "Sub-40 Murph Progression"
 output: html_document
+knit: (function(inputFile, encoding) { 
+    rmarkdown::render(inputFile,
+                      encoding=encoding, 
+                      output_file=file.path('docs/index.html')) })
 ---
 
 ```{r setup, include=FALSE}
@@ -93,8 +97,9 @@ df.joined %>%
   geom_line() +
   geom_point(aes(color=Exercise,size=Max.HR)) +
   scale_x_datetime(breaks = scales::breaks_width("2 min"),date_labels = "%Mm") +
-  theme_bw() + 
-  theme(axis.text.y = element_blank(),
+  theme_bw() +
+  coord_flip() + 
+  theme(axis.text.x = element_blank(),
         legend.position = "bottom") +
   labs(y=NULL,x=NULL,title="Murph")
 
@@ -116,5 +121,68 @@ df.joined %>%
   theme_bw() + 
   labs(y="seconds",x="Round",title="Murph") +
   scale_x_continuous(breaks=seq(1,10))
+
+```
+
+# Proportion
+
+```{r}
+
+df.joined %>% 
+  filter(!Exercise=="Start") %>% 
+  dplyr::mutate(Time=as.numeric(Time)) %>% 
+  group_by(date,Exercise) %>% 
+  summarise(Time=sum(Time)/60) %>% 
+  group_by(date) %>% 
+  dplyr::mutate(Time_frac=Time/sum(Time)) %>% 
+  dplyr::mutate(Label=paste0(Exercise," (",seconds_to_period(Time*60)," - ",scales::percent(Time_frac),")")) %>% 
+  ungroup() %>% 
+  ggplot(.,aes(x=date,y=Time,label=Label,fill=Time)) +
+  geom_bar(stat = "identity") +
+  geom_text(size = 5, position = position_stack(vjust = 0.5),color="white") +
+  theme_bw() +
+  theme(legend.position="null") 
+  
+
+```
+
+# Detailed
+
+```{r fig.height=12,fig.width=4}
+
+df.joined %>% 
+  filter(!Exercise=="Start") %>% 
+  dplyr::mutate(Time=as.numeric(Time)) %>% 
+  group_by(date,Exercise,Laps) %>% 
+  summarise(Time=sum(Time)/60) %>% 
+  group_by(date,Exercise) %>% 
+  dplyr::mutate(Time_frac=Time/sum(Time)) %>% 
+  dplyr::mutate(Label=paste0(Laps," - ",Exercise," (",seconds_to_period(Time*60)," - ",scales::percent(Time_frac),")")) %>% 
+  ungroup() %>% 
+  ggplot(.,aes(x=date,y=Time,label=Label,fill=Time)) +
+  geom_bar(stat = "identity") +
+  geom_text(size = 2, position = position_stack(vjust = 0.5),color="white") +
+  theme_bw() +
+  theme(legend.position="null") 
+  
+
+```
+
+# Heart rate
+
+```{r}
+
+df.joined %>% 
+  filter(!Exercise=="Start") %>% 
+  dplyr::select(Laps,Exercise,Avg.HR,Max.HR) %>% 
+  gather(stat,value,Avg.HR,Max.HR) %>% 
+  ggplot(.,aes(x=Laps,y=value,fill=stat,color=stat)) +
+  geom_line() +
+  scale_y_continuous(breaks=seq(0,200,by=5),limits=c(NA,200)) +
+  scale_x_continuous(breaks=seq(0,50)) +
+  theme_bw() + 
+  theme(axis.text.x = element_blank(),
+        legend.position = "bottom") +
+  labs(y="Heart Rate")
 
 ```
