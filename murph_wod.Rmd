@@ -176,13 +176,15 @@ df.joined %>%
   filter(!Exercise=="Start") %>% 
   dplyr::select(Laps,Exercise,Avg.HR,Max.HR) %>% 
   gather(stat,value,Avg.HR,Max.HR) %>% 
-  ggplot(.,aes(x=Laps,y=value,fill=stat,color=stat)) +
+  ggplot(.,aes(x=Laps,y=value,color=stat)) +
   geom_line() +
-  scale_y_continuous(breaks=seq(0,200,by=5),limits=c(NA,200)) +
+  geom_point(aes(color=Exercise)) +
+  scale_y_continuous(breaks=seq(0,175,by=5),limits=c(NA,175)) +
   scale_x_continuous(breaks=seq(0,50)) +
   theme_bw() + 
   theme(axis.text.x = element_blank(),
         legend.position = "bottom") +
-  labs(y="Heart Rate")
+  labs(y="Heart Rate") +
+  geom_text(aes(label=value),vjust=-0.5,size=3)
 
 ```
