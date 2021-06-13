@@ -88,12 +88,12 @@ df.joined %>%
 ```
 
 
-# Visualizing one Murph
+# Visualizing Murphs
 
 ```{r}
 
 df.joined %>% 
-  ggplot(.,aes(x=Cumulative.Time,y=Laps)) +
+  ggplot(.,aes(x=Cumulative.Time,y=Laps,group=date)) +
   geom_line() +
   geom_point(aes(color=Exercise,size=Max.HR)) +
   scale_x_datetime(breaks = scales::breaks_width("2 min"),date_labels = "%Mm") +
@@ -114,7 +114,8 @@ df.joined %>%
   dplyr::mutate(Rang=rank(Cumulative.Time)) %>% 
   dplyr::mutate(Time=as.numeric(Time)) %>% 
   filter(!Exercise=="Start") %>% 
-  ggplot(.,aes(x=Rang,y=Time)) +
+  dplyr::mutate(date=factor(date)) %>%
+  ggplot(.,aes(x=Rang,y=Time,group=date,color=date)) +
   geom_point() +
   geom_line() +
   facet_wrap(~Exercise,scales="free") +
@@ -174,11 +175,11 @@ df.joined %>%
 
 df.joined %>% 
   filter(!Exercise=="Start") %>% 
-  dplyr::select(Laps,Exercise,Avg.HR,Max.HR) %>% 
+  dplyr::select(Laps,Exercise,Avg.HR,Max.HR,date) %>% 
   gather(stat,value,Avg.HR,Max.HR) %>% 
-  ggplot(.,aes(x=Laps,y=value,color=stat)) +
+  ggplot(.,aes(x=Laps,y=value,color=stat,group=date)) +
   geom_line() +
-  geom_point(aes(color=Exercise)) +
+  geom_point(aes(color=Exercise,grou=date)) +
   scale_y_continuous(breaks=seq(0,175,by=5),limits=c(NA,175)) +
   scale_x_continuous(breaks=seq(0,50)) +
   theme_bw() + 
